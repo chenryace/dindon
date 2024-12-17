@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { cookies } from 'next/headers'
 
-// 确保目录存在
-async function ensureDir(dir: string) {
-  try {
-    await mkdir(dir, { recursive: true })
-  } catch (error) {
-    if ((error as any).code !== 'EEXIST') {
-      throw error
-    }
-  }
-}
+const s3Client = new S3Client({
+  region: process.env.S3_REGION!,
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY!,
+    secretAccessKey: process.env.S3_SECRET_KEY!,
+  },
+  endpoint: process.env.S3_ENDPOINT,
+})
 
 export async function POST(req: Request) {
   // 验证登录状态
@@ -36,10 +33,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
-    await ensureDir(uploadDir)
-
-    const savedFiles = []
+    const uploadedFiles = []
 
     for (const file of files) {
       if (!(file instanceof File)) {
@@ -51,18 +45,23 @@ export async function POST(req: Request) {
       const randomStr = Math.random().toString(36).substring(2, 8)
       const ext = file.name.split('.').pop()
       const fileName = `${timestamp}-${randomStr}.${ext}`
-      
-      // 保存文件
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-      const filePath = join(uploadDir, fileName)
-      await writeFile(filePath, buffer)
+
+      // 上传到 S3
+      const buffer = Buffer.from(await file.arrayBuffer())
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: fileName,
+          Body: buffer,
+          ContentType: file.type,
+        })
+      )
 
       // 添加到结果列表
-      savedFiles.push({
+      uploadedFiles.push({
         originalName: file.name,
         fileName,
-        url: `/uploads/${fileName}`,
+        url: `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET_NAME}/${fileName}`,
         size: file.size,
         type: file.type
       })
@@ -70,7 +69,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      files: savedFiles
+      files: uploadedFiles
     })
 
   } catch (error) {
