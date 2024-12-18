@@ -148,15 +148,6 @@ export default function HomePage() {
     }
   }
 
-  // 清理预览 URL
-  useEffect(() => {
-    return () => {
-      files.forEach(file => {
-        if (file.preview) URL.revokeObjectURL(file.preview)
-      })
-    }
-  }, [files])
-
   return (
     <div className={styles.container} data-theme={isDarkMode ? 'night' : 'day'}>
       <header className={styles.header}>
