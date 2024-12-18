@@ -46,7 +46,6 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   ///////////// 加载已上传的图片
   useEffect(() => {
