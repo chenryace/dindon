@@ -39,7 +39,7 @@ interface UploadResponse {
 }
 
 export default function HomePage() {
-  const router = useRouter()   //
+ // const router = useRouter()   //
   const [isUploading, setIsUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [images, setImages] = useState<UploadedFile[]>([])
