@@ -45,8 +45,10 @@ export default function HomePage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 加载已上传的图片
+  ///////////// 加载已上传的图片
   useEffect(() => {
     fetch('/api/images')
       .then(res => res.json())
@@ -54,7 +56,7 @@ export default function HomePage() {
       .catch(err => console.error('Failed to load images:', err))
   }, [])
 
-  // 处理拖拽事件
+  //// 处理拖拽事件//
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -65,7 +67,7 @@ export default function HomePage() {
     }
   }
 
-  // 处理文件拖放
+  // 处理文件拖放//
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -77,7 +79,7 @@ export default function HomePage() {
     }
   }
 
-  // 处理文件拖放
+  // 处理文件拖放//
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
@@ -85,7 +87,7 @@ export default function HomePage() {
     }
   }
 
-  // 处理文件处理和自动上传
+  // 处理文件处理和自动上传//////////////////////////////////////////////
   const handleUpload = async (files: File[]) => {
     setIsUploading(true)
     
@@ -134,115 +136,145 @@ export default function HomePage() {
     return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
   }
 
+  ///////////// 处理登出
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      })
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('登出失败:', error)
+    }
+  }
+
+  // 清理预览 URL
+  useEffect(() => {
+    return () => {
+      files.forEach(file => {
+        if (file.preview) URL.revokeObjectURL(file.preview)
+      })
+    }
+  }, [files])
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">图床</h1>
+    <div className={styles.container} data-theme={isDarkMode ? 'night' : 'day'}>
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <Image
+            src="/favicon.ico"
+            alt="Logo"
+            width={32}
+            height={32}
+            className={styles.favicon}
+          />
+          <h1 className={styles.title}>{SITE_TITLE}</h1>
+        </div>
+        <div className={styles.buttonGroup}>
+          <button className={`${styles.navButton} ${styles.uploadNavButton}`}>
+            上传图片
+          </button>
           <button
-            onClick={() => {
-              fetch('/api/logout', { method: 'POST' })
-                .then(() => window.location.href = '/login')
-            }}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
+            onClick={() => router.push('/manage')}
+            className={`${styles.navButton} ${styles.manageButton}`}
+          >
+            图片管理
+          </button>
+          <button
+            onClick={handleLogout}
+            className={`${styles.navButton} ${styles.logoutButton}`}
           >
             退出登录
           </button>
-        </header>
+        </div>
+      </header>
 
-        <main className="space-y-8">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl mb-4">上传图片</h2>
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragActive
-                  ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-gray-600 hover:border-gray-500'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              style={{ cursor: 'pointer' }}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                multiple
-                accept="image/*"
-                className="hidden"
-              />
-              <p className="text-gray-400">
-                {isUploading ? '上传中...' : '点击或拖拽图片到这里上传'}
-              </p>
-            </div>
+      <main className={styles.main}>
+        <div className={styles.uploadSection}>
+          <div
+            className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ''}`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              multiple
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+            <p className={styles.dropzoneText}>
+              {isUploading ? '上传中...' : '点击或拖拽图片到这里'}
+            </p>
+            <p className={styles.dropzoneSubtext}>
+              支持 JPG、PNG、GIF 等图片格式（最多9张）
+            </p>
           </div>
+        </div>
 
-          {images.length > 0 && (
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <h2 className="text-xl mb-4">已上传的图片</h2>
-              <div className="space-y-4">
-                {images.map((image, index) => (
-                  <div key={image.fileName} className="bg-gray-700 p-4 rounded-lg">
-                    <div className="flex items-start gap-4">
-                      <div className="w-24 h-24 flex-shrink-0">
-                        <img
-                          src={image.url}
-                          alt={image.originalName}
-                          className="w-full h-full object-cover rounded"
-                        />
+        {files.length > 0 && (
+          <div className={styles.previewSection}>
+            <h3 className={styles.previewTitle}>
+              已上传 {files.length} 张图片
+            </h3>
+            <div className={styles.previewGrid}>
+              {files.map((file, index) => (
+                <div key={index} className={styles.previewItem}>
+                  <div className={styles.previewImageWrapper}>
+                    <Image
+                      src={file.preview}
+                      alt={file.name}
+                      fill
+                      className={styles.previewImage}
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                    />
+                  </div>
+                  {file.url && (
+                    <div className={styles.urlSection}>
+                      <div>
+                        <p className={styles.urlTitle}>直链：</p>
+                        <p className={styles.urlText}>{file.url}</p>
                       </div>
-                      <div className="flex-grow space-y-2">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-medium">{image.originalName}</h3>
-                          <span className="text-sm text-gray-400">
-                            {formatFileSize(image.size)}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={image.url}
-                              readOnly
-                              className="flex-grow bg-gray-600 rounded px-2 py-1 text-sm"
-                            />
-                            <button
-                              onClick={() => copyToClipboard(image.url, index)}
-                              className="px-2 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700"
-                            >
-                              {copiedIndex === index ? '已复制' : '复制链接'}
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={image.markdown}
-                              readOnly
-                              className="flex-grow bg-gray-600 rounded px-2 py-1 text-sm"
-                            />
-                            <button
-                              onClick={() => copyToClipboard(image.markdown, index)}
-                              className="px-2 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700"
-                            >
-                              {copiedIndex === index ? '已复制' : '复制 Markdown'}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          上传时间：{new Date(image.uploadTime).toLocaleString()}
-                        </div>
+                      <div>
+                        <p className={styles.urlTitle}>Markdown：</p>
+                        <p className={styles.urlText}>{file.markdown}</p>
+                      </div>
+                      <div>
+                        <p className={styles.urlTitle}>BBCode：</p>
+                        <p className={styles.urlText}>{file.bbcode}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
-        </main>
-      </div>
+          </div>
+        )}
+
+        {/* 主题切换按钮 */}
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          style={{
+            position: 'fixed',
+            bottom: '2rem',
+            right: '2rem',
+            padding: '1rem',
+            borderRadius: '50%',
+            background: isDarkMode ? '#fff' : '#000',
+            color: isDarkMode ? '#000' : '#fff',
+            cursor: 'pointer',
+            border: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          {isDarkMode ? '🌞' : '🌙'}
+        </button>
+      </main>
     </div>
   )
-}
+} 
