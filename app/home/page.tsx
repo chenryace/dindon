@@ -190,14 +190,6 @@ export default function HomePage() {
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              multiple
-              accept="image/*"
-              style={{ display: 'none' }}
-            />
             <p className={styles.dropzoneText}>
               {isUploading ? '上传中...' : '点击或拖拽图片到这里'}
             </p>
